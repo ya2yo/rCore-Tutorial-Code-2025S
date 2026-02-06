@@ -54,6 +54,7 @@ lazy_static! {
         let mut tasks = [TaskControlBlock {
             task_cx: TaskContext::zero_init(),
             task_status: TaskStatus::UnInit,
+            syscall_times:[0;500],
         }; MAX_APP_NUM];
         for (i, task) in tasks.iter_mut().enumerate() {
             task.task_cx = TaskContext::goto_restore(init_app_cx(i));
@@ -135,6 +136,28 @@ impl TaskManager {
             panic!("All applications completed!");
         }
     }
+    /// add syscall
+    fn add_syscall(&self, id:usize){
+        let mut inner=self.inner.exclusive_access();
+        let current=inner.current_task;
+        inner.tasks[current].syscall_times[id]+=1;
+    }
+    /// query syscall time
+    fn query_syscall_times(&self,id:usize)->usize{
+        let inner=self.inner.exclusive_access();
+        let current=inner.current_task;
+        inner.tasks[current].syscall_times[id]
+    }
+}
+
+/// Query syscall times
+pub fn query_syscall_times(id:usize)->usize{
+    TASK_MANAGER.query_syscall_times(id)
+}
+
+/// Add syscall invoke times
+pub fn add_syscall(id:usize){
+    TASK_MANAGER.add_syscall(id);
 }
 
 /// Run the first task in task list.
